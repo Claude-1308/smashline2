@@ -30,11 +30,21 @@ pub use smash_rs::{
 pub use locks;
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum Priority {
-    Default,
     Low,
+    Default,
     High,
+}
+
+impl std::fmt::Display for Priority {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+       match self {
+           Priority::Low => write!(f, "Low Priority"),
+           Priority::Default => write!(f, "Default Priority"),
+           Priority::High => write!(f, "High Priority"),
+       }
+    }
 }
 
 #[repr(C)]
@@ -44,6 +54,17 @@ pub enum Acmd {
     Effect,
     Sound,
     Expression,
+}
+
+impl std::fmt::Display for Acmd {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+       match self {
+           Acmd::Game => write!(f, "Category Game"),
+           Acmd::Effect => write!(f, "Category Effect"),
+           Acmd::Sound => write!(f, "Category Sound"),
+           Acmd::Expression => write!(f, "Category Expression"),
+       }
+    }
 }
 
 impl PartialEq<acmd_engine::asset::Category> for Acmd {
@@ -318,10 +339,15 @@ decl_imports! {
 
     fn smashline_clone_weapon(
         original_owner: StringFFI,
-        original_name: StringFFI,
+        original_article_id: i32,
         new_owner: StringFFI,
         new_name: StringFFI,
         use_original_code: bool
+    ) -> i32;
+
+    fn smashline_update_weapon_count(
+        article_id: i32,
+        new_count: i32
     );
 
     fn smashline_add_param_object(
@@ -351,17 +377,27 @@ pub fn original_status<L: StatusLineMarker, T>(
 
 pub fn clone_weapon(
     original_owner: impl Into<String>,
-    original_name: impl Into<String>,
+    original_article_id: i32,
     new_owner: impl Into<String>,
     new_name: impl Into<String>,
     use_original_code: bool,
-) {
+) -> i32 {
     smashline_clone_weapon(
         StringFFI::from_str(original_owner),
-        StringFFI::from_str(original_name),
+        original_article_id,
         StringFFI::from_str(new_owner),
         StringFFI::from_str(new_name),
         use_original_code,
+    )
+}
+
+pub fn update_weapon_count(
+    article_id: i32,
+    new_count: i32
+) {
+    smashline_update_weapon_count(
+        article_id,
+        new_count
     );
 }
 
