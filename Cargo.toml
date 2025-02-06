@@ -6,7 +6,7 @@ version = "1.5.1"
 authors = ["blujay <the.blu.dev@gmail.com>"]
 description = "An object script replacement engine for Super Smash Bros. Ultimate"
 edition = "2021"
-repository = "https://github.com/blu-dev/smashline-2"
+repository = "https://github.com/Claude-1308/smashline-2"
 
 [workspace.dependencies]
 Inflector = "0.11"
