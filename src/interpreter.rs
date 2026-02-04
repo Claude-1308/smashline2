@@ -34,7 +34,7 @@ pub fn get_scripts(fighter_name: &str, weapon_name: Option<&str>) -> Vec<LoadedS
     let read_dir = match std::fs::read_dir(&path) {
         Ok(read_dir) => read_dir,
         Err(e) => {
-            println!("Failed to get scripts: {e}");
+            // println!("Failed to get scripts: {e}");
             return vec![];
         }
     };
@@ -231,30 +231,30 @@ static mut CALL_COROUTINE_OFFSET: usize = 0x52e400;
 
 #[skyline::hook(replace = CALL_COROUTINE_OFFSET, inline)]
 unsafe fn call_coroutine_hook(ctx: &mut InlineCtx) {
-    let hash = Hash40(*(*ctx.registers[21].x.as_ref() as *const u64).add(2));
-    *ctx.registers[2].x.as_mut() = *ctx.registers[8].x.as_ref();
-    *ctx.registers[8].x.as_mut() = __smashline_interpreter as *const u64 as _;
-    *ctx.registers[1].x.as_mut() = hash.0;
+    let hash = Hash40(*(ctx.registers[21].x() as *const u64).add(2));
+    ctx.registers[2].set_x(ctx.registers[8].x());
+    ctx.registers[8].set_x(__smashline_interpreter as *const u64 as _);
+    ctx.registers[1].set_x(hash.0);
 }
 
 static mut CALLING: Option<Hash40> = None;
-#[skyline::hook(offset = 0x372d770, inline)]
+#[skyline::hook(offset = 0x372db50, inline)]
 unsafe fn call_function_by_hash(ctx: &InlineCtx) {
-    CALLING = Some(Hash40(*ctx.registers[1].x.as_ref()));
+    CALLING = Some(Hash40(ctx.registers[1].x()));
 }
 
-#[skyline::hook(offset = 0x372d8f4, inline)]
+#[skyline::hook(offset = 0x372dcd4, inline)]
 unsafe fn call_by_hash_hook(ctx: &mut InlineCtx) {
     if let Some(calling) = CALLING.take() {
         // NOTE: This logic is very fragile, but its the quickest work around I can come up
         // with to prevent the unreachable script being called unintentionally
 
-        let original = *ctx.registers[8].x.as_ref();
+        let original = ctx.registers[8].x();
 
         if original as *const () == unreachable_smashline_script as *const () {
-            *ctx.registers[2].x.as_mut() = original;
-            *ctx.registers[8].x.as_mut() = __smashline_interpreter as *const u64 as _;
-            *ctx.registers[1].x.as_mut() = calling.0;
+            ctx.registers[2].set_x(original);
+            ctx.registers[8].set_x(__smashline_interpreter as *const u64 as _);
+            ctx.registers[1].set_x(calling.0);
         }
     }
 }

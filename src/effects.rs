@@ -5,21 +5,21 @@ use smashline::Hash40;
 #[allow(unused)]
 fn effect_manager() -> *mut u64 {
     let text = unsafe { skyline::hooks::getRegionAddress(skyline::hooks::Region::Text) as *mut u8 };
-    unsafe { **(text.add(0x5334920).cast::<*mut *mut u64>()) }
+    unsafe { **(text.add(0x5333920).cast::<*mut *mut u64>()) }
 }
 
-#[skyline::from_offset(0x3563990)]
+#[skyline::from_offset(0x3563720)]
 fn unload_effects(manager: *mut u64, handle: u32);
 
-#[skyline::from_offset(0x355fb60)]
+#[skyline::from_offset(0x355f8f0)]
 fn load_effects(manager: *mut u64, handle: u32, search_index: &u32) -> u32;
 
 #[skyline::hook(offset = 0x60bfd8, inline)]
 unsafe fn load_fighter_effects(ctx: &InlineCtx) {
-    let search_index_begin = &*(*ctx.registers[2].x.as_ref() as *const u32);
+    let search_index_begin = &*(ctx.registers[2].x() as *const u32);
     let _result = load_effects(
-        *ctx.registers[0].x.as_ref() as _,
-        *ctx.registers[1].x.as_ref() as u32,
+        ctx.registers[0].x() as _,
+        ctx.registers[1].x() as u32,
         search_index_begin,
     );
 
@@ -48,8 +48,8 @@ unsafe fn load_fighter_effects(ctx: &InlineCtx) {
         num_transplants += 1;
 
         let _result = load_effects(
-            *ctx.registers[0].x.as_ref() as _,
-            *ctx.registers[1].x.as_ref() as u32 + num_transplants * 2000,
+            ctx.registers[0].x() as _,
+            ctx.registers[1].x() as u32 + num_transplants * 2000,
             &index,
         );
 

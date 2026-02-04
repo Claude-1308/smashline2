@@ -204,7 +204,7 @@ unsafe fn offset_to_addr<T>(offset: usize) -> *const T {
 }
 
 unsafe fn get_game_state() -> *const u64 {
-    let p_p_p_game_state = *offset_to_addr::<*const *const *const u64>(0x52c1760);
+    let p_p_p_game_state = *offset_to_addr::<*const *const *const u64>(0x52c0760);
     if p_p_p_game_state.is_null() {
         return std::ptr::null();
     }
@@ -221,14 +221,14 @@ unsafe fn get_game_state() -> *const u64 {
 
 static mut LAST_RUN_INSTANT: Option<Instant> = None;
 
-#[skyline::hook(offset = 0x3666b30, inline)]
+#[skyline::hook(offset = 0x3666f10, inline)]
 unsafe fn process_inputs_hook(ctx: &skyline::hooks::InlineCtx) {
     const INPUT: u32 = 0x20C0;
     if !get_game_state().is_null() {
         return;
     }
 
-    let buttons = *ctx.registers[1].x.as_ref() as u32;
+    let buttons = ctx.registers[1].x() as u32;
     if buttons & INPUT == INPUT {
         match LAST_RUN_INSTANT.as_mut() {
             Some(instant) if instant.elapsed().as_secs_f32() >= 5.0 => {

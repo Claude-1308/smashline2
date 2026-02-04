@@ -182,12 +182,12 @@ fn weapon_owner_hook(ctx: &mut InlineCtx, source_register: usize, dst_register: 
 
     let owner = CURRENT_OWNER_KIND.load(Ordering::Relaxed);
     let agents = NEW_AGENTS.read();
-    let Some(agent) = try_get_new_agent(&agents, unsafe { *ctx.registers[source_register].x.as_ref() as i32 }, owner) else {
+    let Some(agent) = try_get_new_agent(&agents, unsafe { ctx.registers[source_register].x() as i32 }, owner) else {
         return;
     };
 
     unsafe {
-        *ctx.registers[dst_register].x.as_mut() = agent.owner_id as u64;
+        ctx.registers[dst_register].set_x(agent.owner_id as u64);
     }
 }
 
@@ -198,12 +198,12 @@ fn weapon_owner_name_hook(ctx: &mut InlineCtx, source_register: usize, dst_regis
 
     let owner = CURRENT_OWNER_KIND.load(Ordering::Relaxed);
     let agents = NEW_AGENTS.read();
-    let Some(agent) = try_get_new_agent(&agents, unsafe { *ctx.registers[source_register].x.as_ref() as i32 }, owner) else {
+    let Some(agent) = try_get_new_agent(&agents, unsafe { ctx.registers[source_register].x() as i32 }, owner) else {
         return;
     };
 
     unsafe {
-        *ctx.registers[dst_register].x.as_mut() = agent.owner_name_ffi.as_ptr() as u64;
+        ctx.registers[dst_register].set_x(agent.owner_name_ffi.as_ptr() as u64);
     }
 }
 
@@ -214,12 +214,12 @@ fn weapon_name_hook(ctx: &mut InlineCtx, source_register: usize, dst_register: u
 
     let owner = CURRENT_OWNER_KIND.load(Ordering::Relaxed);
     let agents = NEW_AGENTS.read();
-    let Some(agent) = try_get_new_agent(&agents, unsafe { *ctx.registers[source_register].x.as_ref() as i32 }, owner) else {
+    let Some(agent) = try_get_new_agent(&agents, unsafe { ctx.registers[source_register].x() as i32 }, owner) else {
         return;
     };
 
     unsafe {
-        *ctx.registers[dst_register].x.as_mut() = agent.new_name_ffi.as_ptr() as u64;
+        ctx.registers[dst_register].set_x(agent.new_name_ffi.as_ptr() as u64);
     }
 }
 
@@ -244,32 +244,32 @@ macro_rules! decl_hooks {
 
 decl_hooks! {
     install_weapon_owner_hooks => weapon_owner_hook;
-    params(21, 26, 0x33b6898);
-    game_animcmd_owner(22, 8, 0x33ad1e8);
-    sound_animcmd_owner(22, 8, 0x33af0a8);
-    effect_animcmd_owner(22, 8, 0x33ae148);
-    status_script_owner(22, 8, 0x33ac2b0)
+    params(21, 26, 0x33b6628);
+    game_animcmd_owner(22, 8, 0x33acf78);
+    sound_animcmd_owner(22, 8, 0x33aee38);
+    effect_animcmd_owner(22, 8, 0x33aded8);
+    status_script_owner(22, 8, 0x33ac040)
 }
 
 decl_hooks! {
     install_weapon_owner_name_hooks => weapon_owner_name_hook;
     get_file(26, 25, 0x17e0a4c);
-    game_animcmd_owner_name(8, 2, 0x33ad0ec);
-    sound_animcmd_owner_name(8, 2, 0x33aefac);
-    effect_animcmd_owner_name(8, 2, 0x33ae04c);
-    status_script_owner_name(8, 2, 0x33ac1c4)
+    game_animcmd_owner_name(8, 2, 0x33ace7c);
+    sound_animcmd_owner_name(8, 2, 0x33aed3c);
+    effect_animcmd_owner_name(8, 2, 0x33adddc);
+    status_script_owner_name(8, 2, 0x33abf54)
 }
 
 decl_hooks! {
     install_weapon_name_hooks => weapon_name_hook;
     get_file_weapon_name(23, 22, 0x17e098c);
-    normal_param_data(21, 27, 0x33b6aa0);
-    map_collision_param_data(21, 2, 0x33b6c60);
-    visibility_param_data(21, 2, 0x33b6f84);
-    game_animcmd_weapon_name(8, 3, 0x33ad0fc);
-    sound_animcmd_weapon_name(8, 3, 0x33aefbc);
-    effect_animcmd_weapon_name(8, 3, 0x33ae05c);
-    status_script_weapon_name(8, 3, 0x33ac1d4)
+    normal_param_data(21, 27, 0x33b6830);
+    map_collision_param_data(21, 2, 0x33b69f0);
+    visibility_param_data(21, 2, 0x33b6d14);
+    game_animcmd_weapon_name(8, 3, 0x33ace8c);
+    sound_animcmd_weapon_name(8, 3, 0x33aed4c);
+    effect_animcmd_weapon_name(8, 3, 0x33addec);
+    status_script_weapon_name(8, 3, 0x33abf64)
 }
 
 macro_rules! decl_hooks_kirby_get_kind {
@@ -277,7 +277,7 @@ macro_rules! decl_hooks_kirby_get_kind {
         $(
             #[skyline::hook(offset = $offset, inline)]
             unsafe fn $name(ctx: &mut InlineCtx) {
-                let kind = *ctx.registers[$knd].x.as_ref() as i32;
+                let kind = ctx.registers[$knd].x() as i32;
                 CURRENT_KIRBY_COPY.store(kind, Ordering::Relaxed);
             }
         )*
@@ -330,20 +330,28 @@ decl_hooks_kirby! {
 unsafe fn kirby_get_copy_articles(ctx: &mut InlineCtx, store_reg: usize) {
     let kind = CURRENT_KIRBY_COPY.load(Ordering::Relaxed);
     let kirby_copy_whitelist = KIRBY_COPY_ARTICLE_WHITELIST.read();
-    if let Some(whitelist) = kirby_copy_whitelist.get(&kind) {
-        // println!("Fighter {:#x} is in the whitelist!", kind);
-        let original_descriptors = *ctx.registers[store_reg].x.as_ref() as *const StaticArticleData;
-        IS_KIRBY_COPYING.store(true, Ordering::Relaxed);
-        let fighter_data = get_static_fighter_data(kind);
-        CURRENT_KIRBY_COPY.store(-1, Ordering::Relaxed);
-        IS_KIRBY_COPYING.store(false, Ordering::Relaxed);
+    // println!("Fighter {:#x} is in the whitelist!", kind);
+    let original_descriptors = ctx.registers[store_reg].x() as *const StaticArticleData;
+    IS_KIRBY_COPYING.store(true, Ordering::Relaxed);
+    let fighter_data = get_static_fighter_data(kind);
+    CURRENT_KIRBY_COPY.store(-1, Ordering::Relaxed);
+    IS_KIRBY_COPYING.store(false, Ordering::Relaxed);
     
-        let mut new_descriptors = vec![];
-
-        for article in  (*original_descriptors).articles_as_slice().iter() {
-            new_descriptors.push(*article);
+    let mut new_descriptors = vec![];
+    
+    for article in  (*original_descriptors).articles_as_slice().iter() {
+        new_descriptors.push(*article);
+    }
+    
+    for article in new_descriptors.iter_mut() {
+        // println!("checking count for article id {:#x}", article.weapon_id);
+        let weapon_count = WEAPON_COUNT_UPDATE.read();
+        if let Some(new_count) = weapon_count.get(&article.weapon_id) {
+            article.max_count = *new_count;
         }
-
+    }
+    
+    if let Some(whitelist) = kirby_copy_whitelist.get(&kind) {
         for article in (*fighter_data).articles_as_slice().iter() {
             if whitelist.contains(&article.weapon_id) {
                 // println!("Whitelist contains article {:#x}", article.weapon_id);
@@ -354,16 +362,16 @@ unsafe fn kirby_get_copy_articles(ctx: &mut InlineCtx, store_reg: usize) {
                 }
             }
         }
-    
-        let count = new_descriptors.len();
-        let ptr = new_descriptors.leak().as_ptr();
-        let static_article_info = Box::leak(Box::new(StaticArticleData {
-            descriptors: ptr,
-            count,
-        }));
-    
-        *ctx.registers[store_reg].x.as_mut() = static_article_info as *const StaticArticleData as u64;
     }
+
+    let count = new_descriptors.len();
+    let ptr = new_descriptors.leak().as_ptr();
+    let static_article_info = Box::leak(Box::new(StaticArticleData {
+        descriptors: ptr,
+        count,
+    }));
+
+    ctx.registers[store_reg].set_x(static_article_info as *const StaticArticleData as u64);
 }
 
 pub fn install() {
